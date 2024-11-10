@@ -1,6 +1,8 @@
 # Rust 语言训练营
 
 ## clickhouse compose
+
+```docker-compose
 services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:latest
@@ -26,10 +28,11 @@ services:
 networks:
   pgsql_default:
     external: true
+```
 
+## pgsql compose
 
-
-##pgsql compose
+```docker-compose
 services:
   web:
     image: nginx:latest
@@ -40,15 +43,23 @@ services:
       - "8080:8080"
     volumes:
       - ./volume/nginx/nginx.conf:/etc/nginx/nginx.conf
+```
 
+## 测试容器中安装 网络工具
 
-#测试容器中安装 网络工具
+```shell
 apt-get update && apt-get install -y curl iputils-ping net-tools
 apt install telnet
+```
 
-从pgsql中导出数据表内容去parquet
+## 从 pgsql 中导出数据表内容去 parquet
+
+```sql
 select * from postgresql('pgsql-db-1:5432','state','user_stats','postgres','postgres') into outfile '/var/lib/clickhouse/user_stats.parquet'
+```
 
+## Clickhouse 中直接查询 parquet 文件
 
-Clickhouse 中直接查询parquet文件
+```sql
 select count(*) from file('user_stats.parquet',Parquet) where last_visited_at>='2024-05-01'
+```
