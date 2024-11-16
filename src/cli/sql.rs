@@ -1,12 +1,12 @@
 use clap::{ArgMatches, Parser};
 
-use crate::ReplContext;
+use crate::{CmdExcutor, ReplContext, ReplDisplay};
 
-use super::{ReplCommand, ReplResult};
+use super::ReplResult;
 
 #[derive(Debug, Parser)]
 pub struct SqlOpts {
-    #[arg(long, short, help = "The sql query to run on the dataset")]
+    #[arg(help = "The sql query to run on the dataset")]
     pub query: String,
 }
 
@@ -16,19 +16,23 @@ pub fn sql(args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
         .expect("SQL query string is required")
         .to_string();
 
-    let cmd = SqlOpts::new(query).into();
-    ctx.send(cmd);
-
-    Ok(None)
+    let (msg, rx) = crate::ReplMsg::new(SqlOpts::new(query));
+    Ok(ctx.send(msg, rx))
 }
 impl SqlOpts {
     pub fn new(query: String) -> Self {
         Self { query }
     }
 }
-
-impl From<SqlOpts> for ReplCommand {
-    fn from(opts: SqlOpts) -> Self {
-        ReplCommand::Sql(opts)
+impl CmdExcutor for SqlOpts {
+    async fn execute<T: crate::BackEnd>(self, backend: &mut T) -> anyhow::Result<String> {
+        let df = backend.sql(&self.query).await?;
+        df.display().await
     }
 }
+
+// impl From<SqlOpts> for ReplCommand {
+//     fn from(opts: SqlOpts) -> Self {
+//         ReplCommand::Sql(opts)
+//     }
+// }

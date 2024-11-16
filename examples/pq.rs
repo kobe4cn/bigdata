@@ -37,6 +37,7 @@ fn read_with_parquet(file: &str) -> Result<()> {
 }
 async fn read_with_datafusion(file: &str) -> Result<()> {
     let ctx = SessionContext::new();
+
     let df = ctx.read_parquet(file, ParquetReadOptions::new()).await?;
     // println!("{:?}",df.schema());
     let _df = df.select(vec![col("email")])?;

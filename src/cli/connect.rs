@@ -1,8 +1,8 @@
 use clap::{ArgMatches, Parser};
 
-use crate::ReplContext;
+use crate::{CmdExcutor, ReplContext};
 
-use super::{ReplCommand, ReplResult};
+use super::ReplResult;
 
 #[derive(Debug, Clone)]
 pub enum DatasetConn {
@@ -10,6 +10,7 @@ pub enum DatasetConn {
     Parquet(String),
     Csv(String),
     Json(String),
+    NdJson(String),
 }
 #[derive(Debug, Parser)]
 pub struct ConnectOpts {
@@ -38,6 +39,8 @@ fn verify_conn_str(s: &str) -> Result<DatasetConn, String> {
         Ok(DatasetConn::Csv(conn_str))
     } else if conn_str.ends_with(".json") {
         Ok(DatasetConn::Json(conn_str))
+    } else if conn_str.ends_with(".ndjson") {
+        Ok(DatasetConn::NdJson(conn_str))
     } else {
         Err(format!("Invalid connection string: {}", s))
     }
@@ -54,17 +57,16 @@ pub fn connect(args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
         .expect("Dataset Name is required")
         .to_string();
 
-    let cmd = ConnectOpts::new(conn_str, table, name).into();
-    ctx.send(cmd);
+    let (msg, rx) = crate::ReplMsg::new(ConnectOpts::new(conn_str, table, name));
 
-    Ok(None)
+    Ok(ctx.send(msg, rx))
 }
 
-impl From<ConnectOpts> for ReplCommand {
-    fn from(opts: ConnectOpts) -> Self {
-        ReplCommand::Connect(opts)
-    }
-}
+// impl From<ConnectOpts> for ReplCommand {
+//     fn from(opts: ConnectOpts) -> Self {
+//         ReplCommand::Connect(opts)
+//     }
+// }
 
 impl ConnectOpts {
     pub fn new(conn_str: DatasetConn, table: Option<String>, name: String) -> Self {
@@ -73,5 +75,12 @@ impl ConnectOpts {
             table,
             name,
         }
+    }
+}
+
+impl CmdExcutor for ConnectOpts {
+    async fn execute<T: crate::BackEnd>(self, backend: &mut T) -> anyhow::Result<String> {
+        backend.connect(&self).await?;
+        Ok(format!("Connected to dataset: {}", &self.name))
     }
 }

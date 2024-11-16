@@ -1,12 +1,12 @@
 use clap::{ArgMatches, Parser};
 
-use crate::ReplContext;
+use crate::{BackEnd, CmdExcutor, ReplContext, ReplDisplay};
 
-use super::{ReplCommand, ReplResult};
+use super::ReplResult;
 
 #[derive(Debug, Parser)]
 pub struct DescribeOpts {
-    #[arg(long, short, help = "The name of the dataset")]
+    #[arg(help = "The name of the dataset")]
     pub name: String,
 }
 
@@ -15,11 +15,8 @@ pub fn describe(args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
         .get_one::<String>("name")
         .expect("Dataset Name is required")
         .to_string();
-
-    let cmd = DescribeOpts::new(name).into();
-    ctx.send(cmd);
-
-    Ok(None)
+    let (msg, rx) = crate::ReplMsg::new(DescribeOpts::new(name));
+    Ok(ctx.send(msg, rx))
 }
 impl DescribeOpts {
     pub fn new(name: String) -> Self {
@@ -27,8 +24,15 @@ impl DescribeOpts {
     }
 }
 
-impl From<DescribeOpts> for ReplCommand {
-    fn from(opts: DescribeOpts) -> Self {
-        ReplCommand::Describe(opts)
+// impl From<DescribeOpts> for ReplCommand {
+//     fn from(opts: DescribeOpts) -> Self {
+//         ReplCommand::Describe(opts)
+//     }
+// }
+
+impl CmdExcutor for DescribeOpts {
+    async fn execute<T: BackEnd>(self, backend: &mut T) -> anyhow::Result<String> {
+        let df = backend.describe(&self.name).await?;
+        df.display().await
     }
 }

@@ -1,11 +1,24 @@
-use clap::ArgMatches;
-
-use crate::ReplContext;
+use crate::{BackEnd, CmdExcutor, ReplContext};
+use anyhow::Result;
+use clap::{ArgMatches, Parser};
 
 use super::{ReplCommand, ReplResult};
+#[derive(Debug, Parser)]
+pub struct ListOpts;
 
 pub fn list(_args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
-    ctx.send(ReplCommand::List);
-
-    Ok(None)
+    let (msg, rx) = crate::ReplMsg::new(ReplCommand::List(ListOpts));
+    Ok(ctx.send(msg, rx))
 }
+
+impl CmdExcutor for ListOpts {
+    async fn execute<T: BackEnd>(self, backend: &mut T) -> Result<String> {
+        let tables = backend.list().await?;
+        Ok(format!("{:?}", tables))
+    }
+}
+// impl From<ListOpts> for ReplCommand {
+//     fn from(_opts: ListOpts) -> Self {
+//         ReplCommand::List(_opts)
+//     }
+// }

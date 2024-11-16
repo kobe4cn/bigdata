@@ -11,7 +11,7 @@ fn main() -> Result<()> {
 
     let mut repl = Repl::new(ctx)
         .with_history(history_file, HISTORY_SIZE)
-        .with_banner("Welcome polars cli")
+        .with_banner("Welcome to dataset exploration REPL")
         .with_derived::<ReplCommand>(callbacks);
 
     repl.run()?;
