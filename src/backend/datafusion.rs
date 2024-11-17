@@ -50,16 +50,19 @@ impl BackEnd for DataFusionBackEnd {
                 self.register_parquet(&opts.name, conn_str, ParquetReadOptions::default())
                     .await?;
             }
-            crate::DatasetConn::Csv(conn_str) => {
-                self.register_csv(&opts.name, conn_str, CsvReadOptions::default())
+            crate::DatasetConn::Csv(file_opts) => {
+                let cvsopts = CsvReadOptions::default()
+                    .file_compression_type(file_opts.compression)
+                    .file_extension(&file_opts.ext);
+                self.register_csv(&opts.name, &file_opts.filename, cvsopts)
                     .await?;
             }
-            crate::DatasetConn::Json(conn_str) => {
-                self.register_json(&opts.name, conn_str, Default::default())
-                    .await?;
-            }
-            crate::DatasetConn::NdJson(conn_str) => {
-                self.register_json(&opts.name, conn_str, NdJsonReadOptions::default())
+
+            crate::DatasetConn::NdJson(file_opts) => {
+                let jsonopts = NdJsonReadOptions::default()
+                    .file_compression_type(file_opts.compression)
+                    .file_extension(&file_opts.ext);
+                self.register_json(&opts.name, &file_opts.filename, jsonopts)
                     .await?;
             }
         }
