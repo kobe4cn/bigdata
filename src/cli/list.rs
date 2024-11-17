@@ -1,4 +1,4 @@
-use crate::{BackEnd, CmdExcutor, ReplContext};
+use crate::{BackEnd, CmdExcutor, ReplContext, ReplDisplay};
 use anyhow::Result;
 use clap::{ArgMatches, Parser};
 
@@ -14,7 +14,7 @@ pub fn list(_args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
 impl CmdExcutor for ListOpts {
     async fn execute<T: BackEnd>(self, backend: &mut T) -> Result<String> {
         let tables = backend.list().await?;
-        Ok(format!("{:?}", tables))
+        tables.display().await
     }
 }
 // impl From<ListOpts> for ReplCommand {

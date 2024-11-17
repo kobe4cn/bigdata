@@ -10,8 +10,6 @@ use cli::{
 };
 use crossbeam_channel as mpsc;
 
-use datafusion::prelude::DataFrame;
-
 use enum_dispatch::enum_dispatch;
 
 use reedline_repl_rs::{CallBackMap, Error};
@@ -44,13 +42,13 @@ trait CmdExcutor {
 }
 
 trait BackEnd {
-    type DataFrame: ReplDisplay;
+    // type DataFrame: ReplDisplay;
     async fn connect(&mut self, opts: &ConnectOpts) -> Result<()>;
-    async fn list(&mut self) -> Result<Vec<String>>;
-    async fn schema(&self, name: &str) -> Result<DataFrame>;
-    async fn describe(&self, name: &str) -> Result<DataFrame>;
-    async fn head(&self, opts: HeadOpts) -> Result<DataFrame>;
-    async fn sql(&self, sql: &str) -> Result<DataFrame>;
+    async fn list(&mut self) -> Result<impl ReplDisplay>;
+    async fn schema(&self, name: &str) -> Result<impl ReplDisplay>;
+    async fn describe(&self, name: &str) -> Result<impl ReplDisplay>;
+    async fn head(&self, opts: HeadOpts) -> Result<impl ReplDisplay>;
+    async fn sql(&self, sql: &str) -> Result<impl ReplDisplay>;
 }
 
 trait ReplDisplay {

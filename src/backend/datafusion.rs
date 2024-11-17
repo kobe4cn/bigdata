@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use arrow::util::pretty::pretty_format_batches;
 use datafusion::prelude::{
-    CsvReadOptions, DataFrame, NdJsonReadOptions, ParquetReadOptions, SessionContext,
+    CsvReadOptions, DataFrame, NdJsonReadOptions, ParquetReadOptions, SessionConfig, SessionContext,
 };
 
 use crate::{
@@ -22,7 +22,11 @@ impl Deref for DataFusionBackEnd {
 
 impl DataFusionBackEnd {
     pub fn new() -> Self {
-        Self(SessionContext::new())
+        let mut config = SessionConfig::new();
+        config.options_mut().catalog.information_schema = true;
+
+        let ctx = SessionContext::new_with_config(config);
+        Self(ctx)
     }
 }
 impl Default for DataFusionBackEnd {
@@ -40,7 +44,6 @@ impl ReplDisplay for DataFrame {
 }
 
 impl BackEnd for DataFusionBackEnd {
-    type DataFrame = datafusion::prelude::DataFrame;
     async fn connect(&mut self, opts: &ConnectOpts) -> Result<()> {
         match &opts.conn_str {
             crate::DatasetConn::Postgres(_conn_str) => {
@@ -70,28 +73,32 @@ impl BackEnd for DataFusionBackEnd {
         Ok(())
     }
 
-    async fn list(&mut self) -> Result<Vec<String>> {
-        let catalog = self.0.catalog("datafusion").unwrap();
-        let schema = catalog.schema("public").unwrap();
-        let table_name = schema.table_names();
-        Ok(table_name)
+    async fn list(&mut self) -> Result<impl ReplDisplay> {
+        // let catalog = self.0.catalog("datafusion").unwrap();
+        // let schema = catalog.schema("public").unwrap();
+        // let table_name = schema.table_names();
+        let df = self.0.sql("select table_name,table_type from information_schema.tables where table_schema='public'").await?;
+        Ok(df)
     }
-    async fn schema(&self, name: &str) -> Result<DataFrame> {
+    async fn schema(&self, name: &str) -> Result<impl ReplDisplay> {
         let df = self.0.sql(&format!("DESCRIBE {}", name)).await?;
         Ok(df)
     }
-    async fn describe(&self, name: &str) -> Result<Self::DataFrame> {
+    async fn describe(&self, name: &str) -> Result<impl ReplDisplay> {
         let df = self.0.table(name).await?;
         let df = df.describe().await?;
         Ok(df)
     }
 
-    async fn head(&self, opts: HeadOpts) -> Result<Self::DataFrame> {
-        let df = self.0.table(opts.name).await?;
+    async fn head(&self, opts: HeadOpts) -> Result<impl ReplDisplay> {
+        let df = self
+            .0
+            .sql(format!("select * from {} limit {}", opts.name, opts.n.unwrap_or(10)).as_str())
+            .await?;
         Ok(df)
     }
 
-    async fn sql(&self, sql: &str) -> Result<Self::DataFrame> {
+    async fn sql(&self, sql: &str) -> Result<impl ReplDisplay> {
         let df = self.0.sql(sql).await?;
         Ok(df)
     }

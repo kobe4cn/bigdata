@@ -6,9 +6,9 @@ use super::ReplResult;
 
 #[derive(Debug, Parser)]
 pub struct HeadOpts {
-    #[arg(long, help = "List the first n rows of the dataset")]
+    #[arg(help = "List the first n rows of the dataset")]
     pub name: String,
-    #[arg(long, help = "The number of rows to show", default_value = "10")]
+    #[arg(short, long, help = "The number of rows to show", default_value = "10")]
     pub n: Option<usize>,
 }
 
@@ -18,7 +18,7 @@ pub fn head(args: ArgMatches, ctx: &mut ReplContext) -> ReplResult {
         .expect("Dataset Name is required")
         .to_string();
     let n = args.get_one::<usize>("n").map(|n| n.to_owned());
-
+    println!("name: {}, n: {:?}", name, n);
     let (msg, rx) = crate::ReplMsg::new(HeadOpts::new(name, n));
     Ok(ctx.send(msg, rx))
 }
