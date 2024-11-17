@@ -11,6 +11,7 @@ use cli::{
 use crossbeam_channel as mpsc;
 
 use datafusion::prelude::DataFrame;
+
 use enum_dispatch::enum_dispatch;
 
 use reedline_repl_rs::{CallBackMap, Error};
@@ -77,7 +78,7 @@ impl ReplContext {
                         anyhow::Result::<String>::Ok("".to_string())
                     }) {
                         eprintln!("Fail to process command: {}", e);
-                        process::exit(1);
+                        // process::exit(1);
                     }
                 }
             })
@@ -91,13 +92,7 @@ impl ReplContext {
             eprintln!("Send Error: {}", e);
             process::exit(1);
         }
-        match rx.recv() {
-            Ok(ret) => Some(ret),
-            Err(e) => {
-                eprintln!("Receive Error: {}", e);
-                process::exit(1);
-            }
-        }
+        rx.recv().ok()
     }
 }
 
