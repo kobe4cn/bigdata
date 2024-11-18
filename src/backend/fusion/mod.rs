@@ -1,9 +1,11 @@
 use std::ops::Deref;
+mod describe;
+mod df_describe;
 
-use arrow::util::pretty::pretty_format_batches;
 use datafusion::prelude::{
-    CsvReadOptions, DataFrame, NdJsonReadOptions, ParquetReadOptions, SessionConfig, SessionContext,
+    CsvReadOptions, NdJsonReadOptions, ParquetReadOptions, SessionConfig, SessionContext,
 };
+use describe::DataFrameDescriber;
 
 use crate::{
     cli::{ConnectOpts, HeadOpts},
@@ -32,14 +34,6 @@ impl DataFusionBackEnd {
 impl Default for DataFusionBackEnd {
     fn default() -> Self {
         Self::new()
-    }
-}
-impl ReplDisplay for DataFrame {
-    async fn display(self) -> Result<String> {
-        let batch = self.collect().await?;
-        let pretty_results = pretty_format_batches(&batch)?;
-
-        Ok(pretty_results.to_string())
     }
 }
 
@@ -85,9 +79,17 @@ impl BackEnd for DataFusionBackEnd {
         Ok(df)
     }
     async fn describe(&self, name: &str) -> Result<impl ReplDisplay> {
-        let df = self.0.table(name).await?;
-        let df = df.describe().await?;
-        Ok(df)
+        // let df = self.0.sql(&format!("select * from {}", name)).await?;
+        // let df = df.describe().await?;
+        // Ok(df)
+        let df = self.0.sql(&format!("select * from {}", name)).await?;
+        // let df = df.describe().await?;
+        // let ddf = DescribeDataFrame::new(df);
+        // let record_batch = ddf.to_record_batch().await?;
+        let ddf = DataFrameDescriber::try_new(df)?;
+        let record_batch = ddf.describe().await?;
+        println!("{:?}", record_batch);
+        Ok(record_batch)
     }
 
     async fn head(&self, opts: HeadOpts) -> Result<impl ReplDisplay> {
@@ -103,15 +105,3 @@ impl BackEnd for DataFusionBackEnd {
         Ok(df)
     }
 }
-
-//parse the connection string(postgres://postgres:postgres@localhost:5432/state) to Hashmap
-/*
-HashMap::from([
-        ("host".to_string(), "localhost".to_string()),
-        ("user".to_string(), "postgres".to_string()),
-        ("db".to_string(), "postgres_db".to_string()),
-        ("pass".to_string(), "password".to_string()),
-        ("port".to_string(), "5432".to_string()),
-        ("sslmode".to_string(), "disable".to_string()),
-    ])
-*/
